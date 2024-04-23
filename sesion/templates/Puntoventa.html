@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+
+    <title>Punto de Venta</title>
+    <style>
+        /* Estilos para el menú */
+        .menu-bar {
+            width: 100%;
+            background-color: #333;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+
+        .menu-bar ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .menu-bar li {
+            display: inline;
+            margin: 0 10px;
+        }
+
+        .menu-bar a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .menu-bar a:hover {
+            text-decoration: underline;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        #container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .eliminar {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .eliminar:hover {
+            background-color: #c82333;
+        }
+
+        /* Estilos para el carrito */
+        #carrito-container {
+            margin-top: 30px;
+        }
+
+        #carrito {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #fff;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .carrito-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding: 8px 0;
+        }
+
+        .carrito-item div {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+     
+      <div id="carrito-container">
+        <button id="agregar" onclick="irAFormularioAgregarVenta()">Agregar</button>
+        <h2>Compras</h2>
+        <div id="carrito">
+            <!-- Encabezados de los campos -->
+            <div class="carrito-item carrito-header">
+                <div>Producto</div>
+                <div>Precio</div>
+                <div>Cantidad</div>
+                <div>Total</div>
+                <button class="imprimir-ticket">Imprimir Ticket</button>
+            </div>
+        </div>
+    </div>
+    <script>
+          var jsPDF = window.jspdf.jsPDF;
+        function irAFormularioAgregarVenta() 
+        {   // Redirige a la página de agregar_venta
+            window.location.href = "/agregar_venta/";
+        }
+        
+    
+        $(window).on('load', function() {
+            // Recuperar datos del carrito del almacenamiento local
+            var productos_carrito = JSON.parse(localStorage.getItem('productos_carrito'));
+    
+            // Verificar si hay productos almacenados
+            if (productos_carrito && Array.isArray(productos_carrito) && productos_carrito.length > 0) {
+                // Recorrer y mostrar los productos en el carrito
+                productos_carrito.forEach(function(producto) {
+                    var precio = producto.precio ? '$' + producto.precio.toFixed(2) : 'Precio no disponible';
+                    var total = producto.total ? producto.total.toFixed(2) : 'Total no disponible';
+                    var fila = '<div class="carrito-item" data-idProProducto="' + producto.idProProducto + '">' +
+                                   '<div class="carrito-item-nombre">' + producto.producto + '</div>' +
+                                   '<div class="carrito-item-precio">' + precio + '</div>' +
+                                   '<div class="carrito-item-cantidad">' + producto.cantidad + '</div>' +
+                                   '<div class="carrito-item-total">$' + total + '</div>' +
+                                   '<div>' +
+                                   '</div>' +
+                               '</div>';
+    
+                    $('#carrito').append(fila);
+                });
+            } else {
+                // Mostrar un mensaje si no hay productos en el carrito
+                $('#carrito').html('<p>No hay productos en el carrito.</p>');
+            }
+        });
+    
+        $('.imprimir-ticket').click(function() {
+            // Crear un nuevo objeto jsPDF
+            var doc = new jsPDF();
+    
+            // Encabezado del ticket
+            doc.text('Ticket de Compra', 10, 10);
+    
+            var startY = 30;
+            var lineHeight = 10;
+    
+            // Recorrer los productos del carrito
+            $('.carrito-item').each(function(index, element) {
+                var producto = $(this).find('.carrito-item-nombre').text();
+                var precio = $(this).find('.carrito-item-precio').text();
+                var cantidad = $(this).find('.carrito-item-cantidad').text();
+                var total = $(this).find('.carrito-item-total').text();
+    
+                var text = `${producto} - ${precio} - ${cantidad} - ${total}`;
+                
+                // Agregar la línea al PDF
+                doc.text(text, 10, startY + (index * lineHeight));
+            });
+    
+            // Calcular y agregar el total
+            var totalAmount = 0;
+            $('.carrito-item-total').each(function() {
+                totalAmount += parseFloat($(this).text().replace('$', ''));
+            });
+    
+            // Agregar total al PDF
+            doc.text(`Total: $${totalAmount.toFixed(2)}`, 10, startY + ((lineHeight + 5) * $('.carrito-item').length));
+    
+            // Descargar el PDF
+            doc.save('ticket_compra.pdf');
+        });
+    </script>
+
+    <div class="menu-bar">
+        <ul>
+            <li><a href="{% url 'producto' %}" class="product-link">Productos</a></li>
+            <li><a href="{% url 'sesion' %}">Login</a></li>
+            <a href="{% url 'logout' %}">Cerrar sesión</a>
+            <li><a href="{% url 'puntoventa' %}">Punto de Venta</a></li>
+            <li><a href="{% url 'agregar_usuario' %}">Registrar</a></li>
+            <li><a href="{% url 'bienvenida' %}">Home</a></li>
+        </ul>
+    </div>
+</body>
+<form id="csrf-form" action="" method="post">
+    {% csrf_token %}
+</form>
+</html>
